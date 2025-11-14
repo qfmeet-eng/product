@@ -1,7 +1,7 @@
-const bcrypt = require("bcrypt");
-const genToken = require("../token/token.js");
+  const bcrypt = require("bcrypt");
+const genToken = require("../../token/token.js");
 const yup = require("yup");
-const User = require("../model/model.js");
+const User = require("../../model/userModel/model.js");
 
 const tokenExpiryDate = () => new Date(Date.now() +24 * 60 * 60 * 1000);
 

@@ -1,19 +1,24 @@
-const mongoose = require("mongoose")
+const mongoose = require("mongoose");
 
-const userSchema = mongoose.Schema({
-
-    is_favorite:{
-        type:Boolean,
-        default:false
+const favoriteSchema = mongoose.Schema(
+  {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
     },
+    productId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Product",
+      required: true,
+    },
+    is_favorite: {
+      type: Boolean,
+      default: true,
+    },
+  },
+  { timestamps: true }
+);
 
-    // productId:{
-    //                 type:mongoose.Schema.Types.ObjectId,
-    //                 ref: "Product",
-    //                 required:true
-    //         },
-    })
-
-
-const Product = mongoose.model("Product",userSchema);
-module.exports =  Product
+const Favorite = mongoose.model("Favorite", favoriteSchema);
+module.exports = Favorite;

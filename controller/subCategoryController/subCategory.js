@@ -1,211 +1,251 @@
 const mongoose = require("mongoose");
 const yup = require("yup");
 
-const SubCategory = require("../../model/subCategoryModel/subCatetgoryModel.js");
+const SubCategory = require("../../model/subCategoryModel/subCategoryModel.js");
 const Category = require("../../model/categoryModel/categoryModel.js");
 
-//YUP VALIDATION
+// YUP VALIDATION
 const subCategoryValidation = yup.object().shape({
-    name: yup
-        .string()
-        .trim()
-        .required("Subcategory name is required")
-        .min(2, "Subcategory name must be at least 2 characters"),
-
-    categoryId: yup
-        .string()
-        .required("Category ID is required")
-        .test("is-valid-objectid", "Invalid Category ID",
-            value => mongoose.Types.ObjectId.isValid(value)
-        )
+  name: yup
+    .string()
+    .trim()
+    .required("Subcategory name is required")
+    .min(2, "Subcategory name must be at least 2 characters"),
+  categoryId: yup
+    .string()
+    .required("Category ID is required")
+    .test(
+      "is-valid-objectid",
+      "Invalid Category ID",
+      value => mongoose.Types.ObjectId.isValid(value)
+    )
 });
 
 // CREATE SUBCATEGORY
 exports.createSubCategory = async (req, res) => {
-    try {
-        await subCategoryValidation.validate(req.body, { abortEarly: false });
+  try {
+    await subCategoryValidation.validate(req.body, { abortEarly: false });
+    const { name, categoryId } = req.body;
+    const formattedName = name.trim();
+    const categoryExists = await Category.findById(categoryId);
+    if (!categoryExists || categoryExists.isDelete) {
+      return res.status(404).json({ message: "Category not found" });
+    }
+    const subCategoryExists = await SubCategory.findOne({
+      name: { $regex: `^${formattedName}$`, $options: "i" },
+      categoryId,
+      isDelete: false
+    });
 
-        let { name, categoryId } = req.body;
-        const formattedName = name.trim();
+    if (subCategoryExists) {
+      return res.status(400).json({
+        message: "This subcategory already exists under the selected category"
+      });
+    }
+    const data = await SubCategory.create({
+      name: formattedName,
+      categoryId,
+      isDelete: false,
+      createdAt: new Date(),
+      updatedAt: null,
+      deletedAt: null
+    });
 
-        const categoryExists = await Category.findById(categoryId);
-
-        if (!categoryExists || categoryExists.isDelete) {
-            return res.status(404).json({ message: "Category not found" });
-        }
-
-        const subCategoryExists = await SubCategory.findOne({
-            name: { $regex: `^${formattedName}$`, $options: "i" },
-            categoryId,
-            isDelete: false
-        });
-
-        if (subCategoryExists) {
-            return res.status(400).json({
-                message: "This subcategory already exists under the selected category"
-            });
-        }
-
-        const data = await SubCategory.create({
-            name: formattedName,
-            categoryId,
-            isDelete: false,
-            createdAt: new Date(),
-            updatedAt: null,
-            deletedAt: null
-        });
-
-        return res.status(200).json({
-            message: "Subcategory created successfully",
-            data: {
+    return res.status(200).json({
+      message: "Subcategory created successfully",
+      data: {
         id: data._id,
         name: data.name,
-        categoryId:data.categoryId
-        
+        categoryId: data.categoryId
       }
-        });
-
-    } catch (error) {
-        if (error instanceof yup.ValidationError) {
-            return res.status(400).json({ message: error.errors });
-        }
-
-        return res.status(500).json({ message: `Create error: ${error.message}` });
+    });
+  } catch (error) {
+    if (error instanceof yup.ValidationError) {
+      return res.status(400).json({ message: error.errors });
     }
+    return res.status(500).json({ message: `Create error: ${error.message}` });
+  }
 };
 
-// GET ALL SUBCATEGORY
-exports.getAllSubCategory = async (req, res) => {
-    try {
-        const page = parseInt(req.body.page) || 1;
-        const limit = parseInt(req.body.limit) || 5;
-        const skip = (page - 1) * limit;
-        const subCategory = await SubCategory.find({ isDelete: false })
-            .populate("categoryId", "name")
-            .skip(skip)
-            .limit(limit);
-        const totalData = await SubCategory.countDocuments({ isDelete: false });
-        const totalPage = Math.ceil(totalData / limit);
-         return res.status(200).json({
+// GET SUBCATEGORY BY PAGINATION
+exports.getAllSubCategoryByPagination = async (req, res) => {
+  try {
+    let page = Number(req.body.page) || 1;
+    let limit = Number(req.body.limit) || 10;
+    const search = req.body.q?.toLowerCase() || "";
+
+    const skip = (page - 1) * limit;
+
+    const query = {
+      isDelete: false,
+      ...(search && {
+        $or: [{ name: { $regex: search, $options: "i" } }]
+      })
+    };
+
+    const total = await SubCategory.countDocuments(query);
+
+    const subcategory = await SubCategory.find(query)
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({
       success: true,
-      message: "Categories get successFully.",
-        limit,
+      message: "Subcategories fetched successfully.",
+      total,
       page,
-      totalPage,
-     
-      data: subCategory.map(item => ({
+      totalPages: Math.ceil(total / limit),
+      perPage: limit,
+      data: subcategory.map(item => ({
         id: item._id,
         name: item.name,
-        isActive: item.isActive
+        isActive: item.isActive,
+        categoryId: item.categoryId
       }))
     });
-    } catch (error) {
-        return res.status(500).json({ message: `Get all error: ${error.message}` });
-    }
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Unable to load subcategories. Please try again."
+    });
+  }
+};
+
+
+// DROPDOWN (ALL SUBCATEGORY)
+exports.getSubCategoryByDropDown = async (req, res) => {
+  try {
+    const subcategory = await SubCategory.find({ isDelete: false });
+
+    return res.status(200).json({
+      success: true,
+      message: "Subcategories fetched successfully.",
+      data: subcategory.map(item => ({
+        id: item._id,
+        name: item.name,
+        isActive: item.isActive,
+        categoryId: item.categoryId
+      }))
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Unable to load subcategories"
+    });
+  }
 };
 
 
 // GET SUBCATEGORY BY ID
 exports.getSubcategory = async (req, res) => {
-    try {
-        let subCategory = await SubCategory.findById(req.params.id)
-            .populate("categoryId", "name");
+  try {
+    const subCategory = await SubCategory.findById(req.params.id).populate("categoryId", "name");
+    if (!subCategory || subCategory.isDelete) {
+      return res.status(404).json({ message: "Subcategory not found" });
+    }
 
-        if (!subCategory || subCategory.isDelete === true) {
-            return res.status(404).json({ message: "Subcategory not found" });
-        }
-        return res.status(200).json({
+    return res.status(200).json({
       success: true,
-      message: "Category id get.",
+      message: "Subcategory fetched successfully.",
       data: {
         id: subCategory._id,
         name: subCategory.name,
-        isActive: subCategory.isActive
+        isActive: subCategory.isActive,
+        categoryId: subCategory.categoryId
       }
     });
-    } catch (error) {
-        return res.status(500).json({ message: `Get data by ID error: ${error.message}` });
-    }
+  } catch (error) {
+    return res.status(500).json({ message: `Get data by ID error: ${error.message}` });
+  }
 };
 
 
 // UPDATE SUBCATEGORY
 exports.updateSubCategory = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const updateValidation = yup.object().shape({
-            name: yup.string().trim().min(2, "Name must be at least 2 characters").optional(),
+  try {
+    const { id } = req.params;
+    const updateValidation = yup.object().shape({
+      name: yup.string().trim().min(2, "Name must be at least 2 characters").optional(),
+      categoryId: yup
+        .string()
+        .test(
+          "is-valid-objectid",
+          "Invalid Category ID",
+          value => !value || mongoose.Types.ObjectId.isValid(value)
+        )
+        .optional()
+    });
+    await updateValidation.validate(req.body, { abortEarly: false });
+    const { name, categoryId } = req.body;
+    const subCategory = await SubCategory.findById(id);
+    if (!subCategory || subCategory.isDelete) {
+      return res.status(404).json({ message: "Subcategory not found" });
+    }
+    if (name) {
+      const formattedName = name.trim();
+      const exists = await SubCategory.findOne({
+        name: { $regex: `^${formattedName}$`, $options: "i" },
+        _id: { $ne: id },
+        categoryId: categoryId || subCategory.categoryId,
+        isDelete: false
+      });
 
-            categoryId: yup
-                .string()
-                .test("is-valid-objectid", "Invalid Category ID",
-                    value => !value || mongoose.Types.ObjectId.isValid(value)
-                )
-                .optional()
-        });
+      if (exists) {
+        return res.status(400).json({ message: "Subcategory name already exists" });
+      }
 
-        await updateValidation.validate(req.body, { abortEarly: false });
-        const { name, categoryId } = req.body;
-        const subCategory = await SubCategory.findById(id);
-        if (!subCategory || subCategory.isDelete === true) {
-            return res.status(404).json({ message: "Subcategory not found" });
-        }
-        if (name) {
-            const formattedName = name.trim();
-            const exists = await SubCategory.findOne({
-                name: { $regex: `^${formattedName}$`, $options: "i" },
-                _id: { $ne: id },
-                categoryId: categoryId || subCategory.categoryId,
-                isDelete: false
-            });
-            if (exists) {
-                return res.status(400).json({ message: "Subcategory name already exists" });
-            }
-            subCategory.name = formattedName;
-        }
-        if (categoryId) {
-            subCategory.categoryId = categoryId;
-        }
-        subCategory.updatedAt = new Date();
-        await subCategory.save();
+      subCategory.name = formattedName;
+    }
+    if (categoryId) {
+      const categoryExists = await Category.findById(categoryId);
+      if (!categoryExists || categoryExists.isDelete) {
+        return res.status(404).json({ message: "Category not found" });
+      }
 
-        return res.status(200).json({
+      subCategory.categoryId = categoryId;
+    }
+
+    subCategory.updatedAt = new Date();
+    await subCategory.save();
+
+    return res.status(200).json({
       success: true,
-      message: "Category updated successfully.",
+      message: "Subcategory updated successfully.",
       data: {
         id: subCategory._id,
         name: subCategory.name,
-        isActive: subCategory.isActive
+        isActive: subCategory.isActive,
+        categoryId: subCategory.categoryId
       }
     });
-
-    } catch (error) {
-        if (error instanceof yup.ValidationError) {
-            return res.status(400).json({ message: error.errors });
-        }
-
-        return res.status(500).json({ message: `Update error: ${error.message}` });
+  } catch (error) {
+    if (error instanceof yup.ValidationError) {
+      return res.status(400).json({ message: error.errors });
     }
+    return res.status(500).json({ message: `Update error: ${error.message}` });
+  }
 };
 
 
 // DELETE SUBCATEGORY
 exports.deleteSubCategory = async (req, res) => {
-    try {
-        let subCategory = await SubCategory.findById(req.params.id);
-        if (!subCategory || subCategory.isDelete === true) {
-            return res.status(404).json({
-                message: "Subcategory not found or already deleted"
-            });
-        }
-        subCategory.isDelete = true;
-        subCategory.deletedAt = new Date();
-        await subCategory.save();
-      return res.status(200).json({
-      success: true,
-      message: "Category deleted."
-    });
-    } catch (error) {
-        return res.status(500).json({ message: `Delete error: ${error.message}` });
+  try {
+    const subCategory = await SubCategory.findById(req.params.id);
+    if (!subCategory || subCategory.isDelete) {
+      return res.status(404).json({
+        message: "Subcategory not found or already deleted"
+      });
     }
+    subCategory.isDelete = true;
+    subCategory.deletedAt = new Date();
+    await subCategory.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Subcategory deleted successfully."
+    });
+  } catch (error) {
+    return res.status(500).json({ message: `Delete error: ${error.message}` });
+  }
 };

@@ -67,7 +67,7 @@ exports.createCategory = async (req, res) => {
 exports.getAllCategoryByPagination = async (req, res) => {
   try {
     let page = Number(req.body.page) || 1;
-    let limit = Number(req.body.limit) || 10;
+    let limit    = Number(req.body.limit) || 10;
     const search = req.body.q?.toLowerCase() || "";
 
     let skip = (page - 1) * limit;
@@ -225,7 +225,7 @@ exports.updateCategory = async (req, res) => {
             message: "This category name is already taken."
           });
         }
-
+    
         categoryData.name = formattedName;
       }
     }

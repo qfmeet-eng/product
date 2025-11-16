@@ -25,7 +25,7 @@ const userSchema = mongoose.Schema(
             default:false
         },
         prise:{
-            type:String,
+            type:Number,
             required:true
         },
         isDelete:{

@@ -18,7 +18,6 @@ const userSchema = mongoose.Schema(
         },
          image:{
             type:String,
-            required:true
          },
         isActive:{
             type:Boolean,

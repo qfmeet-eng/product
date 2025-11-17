@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const yup = require("yup");
 
-const SubCategory = require("../../model/subCategoryModel/subCategoryModel.js");
+const SubCategory = require("../../model/subCategoryModel/subCatetgoryModel.js");
 const Category = require("../../model/categoryModel/categoryModel.js");
 
 // YUP VALIDATION

@@ -144,7 +144,6 @@ exports.getCategoryById = async (req, res) => {
         message: "Category not found."
       });
     }
-
     return res.status(200).json({
       success: true,
       message: "Category id get.",
@@ -154,7 +153,6 @@ exports.getCategoryById = async (req, res) => {
         isActive: category.isActive
       }
     });
-
   } catch (error) {
     return res.status(500).json({
       success: false,
@@ -175,16 +173,13 @@ exports.deleteCategory = async (req, res) => {
         message: "Category not found."
       });
     }
-
     category.isDelete = true;
     category.deletedAt = new Date();
     await category.save();
-
     return res.status(200).json({
       success: true,
       message: "Category deleted."
     });
-
   } catch (error) {
     return res.status(500).json({
       success: false,

@@ -14,7 +14,7 @@ const favoriteSchema = mongoose.Schema(
     },
     is_favorite: {
       type: Boolean,
-      default: true,
+      default: false,
     },
   },
   { timestamps: true }

@@ -21,6 +21,10 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    isActive:{
+        type:Boolean,
+        default:true
+    },
 
     token: {
      type: String,
@@ -46,11 +50,7 @@ const userSchema = new mongoose.Schema({
         default: Date.now
     },
 
-    status: {
-        type: String,
-        enum: ["active", "inactive"],
-        default: "active"
-    }
+   
 });
 
 const User = mongoose.model("User", userSchema);

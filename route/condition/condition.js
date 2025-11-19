@@ -10,9 +10,8 @@ const {
 } = require("../../controller/conditionController/conditionController");
 
 // FAVORITE ROUTES
-
 conditionRouter.post("/add", addFavorite);
-conditionRouter.post("/remove", removeFavorite);
+conditionRouter.post("/remove", removeFavorite);  
 conditionRouter.post("/toggle", toggleFavorite);
 conditionRouter.get("/list/:userId", getUserFavorites);
 conditionRouter.post("/check", isFavorite);

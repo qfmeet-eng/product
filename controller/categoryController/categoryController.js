@@ -203,7 +203,7 @@ exports.updateCategory = async (req, res) => {
         message: "Category not found."
       });
     }
-
+    
     if (name !== undefined) {
       const formattedName = name.trim();
 

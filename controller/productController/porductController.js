@@ -17,7 +17,7 @@ const createProductSchema = yup.object({
   name: yup.string().trim().required("Product name is required"),
   categoryId: objectId.required("Category ID is required"),
   subCategoryId: objectId.required("SubCategory ID is required"),
-  prise: yup
+  price: yup
     .number()
     .typeError("Price must be a number")
     .positive("Price must be greater than 0")
@@ -28,7 +28,7 @@ const updateProductSchema = yup.object({
   name: yup.string().trim(),
   categoryId: objectId,  
   subCategoryId: objectId,
-  prise: yup
+  price: yup
     .number()
     .typeError("Price must be a number")
     .positive("Price must be greater than 0"),
@@ -41,7 +41,7 @@ const updateProductSchema = yup.object({
   exports.createProduct = async (req, res) => {
     try {
       await createProductSchema.validate(req.body, { abortEarly: false });
-      const { name, categoryId, subCategoryId, prise } = req.body;
+      const { name, categoryId, subCategoryId, price } = req.body;
 
       const image = req.file ? req.file.filename : null;
 
@@ -73,7 +73,7 @@ const updateProductSchema = yup.object({
         categoryId,
         subCategoryId,
         image,
-        prise,
+        price,
         createdAt: new Date(),
         deletedAt: null,
         updatedAt: null,
@@ -87,7 +87,7 @@ const updateProductSchema = yup.object({
           name: product.name,
           categoryId: product.categoryId,
           subCategoryId: product.subCategoryId,
-          prise: product.prise,
+          price: product.price,
           image: product.image,
           isActive: product.isActive,
         },
@@ -142,7 +142,7 @@ const updateProductSchema = yup.object({
           image: item.image,
           categoryId: item.categoryId,
           subCategoryId: item.subCategoryId,
-          prise: item.prise,
+          price: item.price,
           isActive: item.isActive,
         })),
       });
@@ -176,11 +176,11 @@ const updateProductSchema = yup.object({
         data: {
           id: product._id,
           name: product.name,
-          prise: product.prise,
+          price: product.price,
           image: product.image,
           isActive: product.isActive,
-          category: product.categoryId,
-          subCategory: product.subCategoryId,
+             categoryId: { id: product.categoryId._id, name: product.categoryId.name },
+          subCategoryId: { id: product.subCategoryId._id, name: product.subCategoryId.name },
         },
       });
     } catch (error) {
@@ -192,7 +192,7 @@ const updateProductSchema = yup.object({
   exports.updateProduct = async (req, res) => {
     try {
       const { id } = req.params;
-      const { name, categoryId, subCategoryId, prise, isActive } = req.body;
+      const { name, categoryId, subCategoryId, price, isActive } = req.body;
 
       if (!mongoose.Types.ObjectId.isValid(id))
         return res.status(400).json({ success: false, message: "Invalid Product ID" });
@@ -207,9 +207,24 @@ const updateProductSchema = yup.object({
 
       if (name) product.name = name.trim();
       if (image) product.image = image;
-      if (prise) product.prise = prise;
+      if (price) product.price = price;
       if (isActive !== undefined) product.isActive = isActive;
 
+      if (name) {
+      const formattedName = name.trim();
+      const exists = await Product.findOne({
+        name: { $regex: `^${formattedName}$`, $options: "i" },
+        _id: { $ne: id },
+        
+        isDelete: false
+      });
+
+      if (exists) {
+        return res.status(400).json({ message: "product name already exists" });
+      }
+
+      product.name = formattedName;
+    }
       if (categoryId) {
         const category = await Category.findOne({ _id: categoryId, isDelete: false });
         if (!category)
@@ -298,9 +313,10 @@ const updateProductSchema = yup.object({
         data: products.map((p) => ({
           id: p._id,
           name: p.name,
-          category: { id: p.categoryId._id, name: p.categoryId.name },
-          subCategory: { id: p.subCategoryId._id, name: p.subCategoryId.name },
-          prise: p.prise,
+          categoryId: { id: p.categoryId._id, name: p.categoryId.name },
+          subCategoryId: { id: p.subCategoryId._id, name: p.subCategoryId.name },
+          price: p.price,
+          image:p.image,
           isActive:p.isActive
         })),
       });

@@ -3,7 +3,6 @@ const yup = require("yup");
 const Favorite = require("../../model/condision/condistion");
 const Product = require("../../model/productModel/productModel");
 
-// YUP VALIDATION
 const objectId = yup
   .string()
   .test("is-objectid", "Invalid ID", (value) =>

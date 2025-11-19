@@ -18,12 +18,13 @@ const userSchema = mongoose.Schema(
         },
          image:{
             type:String,
-         },
+            required:true
+        },
         isActive:{
             type:Boolean,
             default:false
         },
-        prise:{
+        price:{
             type:Number,
             required:true
         },

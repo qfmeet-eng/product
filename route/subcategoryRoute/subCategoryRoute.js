@@ -4,7 +4,7 @@ const { getAllCategoryByPagination } = require("../../controller/categoryControl
 
 const sCategoryRoute = express.Router()
 
-sCategoryRoute.post("/createsCategory",createSubCategory)
+sCategoryRoute.post("/createsSubCategory",createSubCategory)
 sCategoryRoute.post("/getAllsCategory",getAllCategoryByPagination)
 sCategoryRoute.get("/getSubCategoryDrop",getSubCategoryByDropDown)
 sCategoryRoute.get("/getSubCategoryById/:id",getSubcategory)

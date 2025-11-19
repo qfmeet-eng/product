@@ -127,7 +127,124 @@ const login = async (req, res) => {
     });
   }
 };
+const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find({ isDelete: false }).select("name email createdAt updatedAt");
 
+    return res.status(200).json({
+      success: true,
+      message: "Users fetched successfully.",
+      data: users,
+    });
+  } catch (error) {
+    console.error("Get all users error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong while fetching users.",
+    });
+  }
+};
+
+
+const updateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, password, isActive } = req.body;
+
+    const user = await User.findOne({ _id: id, isDelete: false });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found.",
+      });
+    }
+
+    // Update name
+    if (name) user.name = name;
+
+    // Update email
+    if (email && email !== user.email) {
+      const emailExists = await User.findOne({ email, isDelete: false });
+      if (emailExists) {
+        return res.status(400).json({
+          success: false,
+          message: "This email is already in use.",
+        });
+      }
+      user.email = email;
+    }
+
+    // Update password
+    if (password) {
+      user.password = await bcrypt.hash(password, 10);
+    }
+
+    // 👍 FIX: Update Active Status
+    if (typeof isActive !== "undefined") {
+      user.isActive = isActive;
+    }
+
+    user.updatedAt = new Date();
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "User updated successfully.",
+      data: user,
+    });
+
+  } catch (error) {
+    console.error("Update user error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error updating user.",
+    });
+  }
+};
+
+
+
+const deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findOne({ _id: id, isDelete: false });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found or already deleted.",
+      });
+    }
+
+    user.isDelete = true;
+    user.deleteAt = new Date();
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "User deleted successfully.",
+    });
+  } catch (error) {
+    console.error("Delete user error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong while deleting the user.",
+    });
+  }
+};
+
+// Get user by ID
+const getUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findOne({ _id: id, isDelete: false }).select("name email isActive createdAt updatedAt");
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+    return res.status(200).json({ success: true, message: "User found", data:{id:user._is,name: user.name,email:user.email} });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Failed to fetch user" });
+  }
+};
 
 const getCurrentUser = async (req, res) => {
   try {
@@ -158,4 +275,4 @@ const getCurrentUser = async (req, res) => {
 };
 
 
-module.exports = { registration, login, getCurrentUser };
+module.exports = {getUserById, registration,updateUser,getAllUsers, deleteUser,login, getCurrentUser };
